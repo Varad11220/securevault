@@ -1,9 +1,9 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";      
-import Counter from '../models/Counter.js'; 
-import { generateRandomCode } from '../utils/codeGenerator.js';  // <-- named import
+import User from "../models/user.js";      
+import Counter from '../models/counter.js'; 
+import { generateRandomCode } from '../utils/codeGenerator.js';  
 
 const router = express.Router();
 

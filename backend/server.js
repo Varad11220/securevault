@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import cron from 'node-cron';
-import User from './models/User.js';
+import User from './models/user.js';
 import { generateRandomCode } from './utils/codeGenerator.js';
 
 dotenv.config();
