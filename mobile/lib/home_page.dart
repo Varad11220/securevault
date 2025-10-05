@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_page.dart';
+import 'logcat.dart';
 import 'dart:convert';
 
 class HomePage extends StatefulWidget {
@@ -12,7 +13,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String username = '';
   int userId = 0;
   String authCode = '';
@@ -23,14 +24,36 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   int secondsLeft = 30;
 
   late AnimationController _animationController;
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 30),
+    );
+
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
+    );
+    _fadeController.forward();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
 
@@ -39,6 +62,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _timer?.cancel();
     _countdownTimer?.cancel();
     _animationController.dispose();
+    _fadeController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -52,18 +77,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   void _startAuthCodeCycle() {
-    // Calculate ms until next 30-second boundary
     final now = DateTime.now();
     final msUntilNext30Sec = (30 - (now.second % 30)) * 1000 - now.millisecond;
 
     Future.delayed(Duration(milliseconds: msUntilNext30Sec), () {
       _fetchAuthCode();
 
-      // Start the animation and timers
       _animationController.forward(from: 0);
       _startCountdownTimer();
 
-      // Then periodic fetch every 30 seconds aligned to backend
       _timer = Timer.periodic(const Duration(seconds: 30), (_) {
         _fetchAuthCode();
         _animationController.forward(from: 0);
@@ -81,7 +103,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           secondsLeft--;
         });
       } else {
-        secondsLeft = 30; // reset countdown (safe fallback)
+        secondsLeft = 30;
       }
     });
   }
@@ -94,7 +116,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.195.179.104:3000/api/auth/code'),
+        Uri.parse('https://securevault-743s.onrender.com/api/auth/code'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -131,62 +153,375 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final double size = 150;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
-        ],
-      ),
-      body: Center(
-  child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Text('Welcome $username (ID: $userId)', style: const TextStyle(fontSize: 20)),
-      const SizedBox(height: 30),
-
-      if (authCode.isEmpty) ...[
-        const CircularProgressIndicator(),
-        const SizedBox(height: 10),
-        const Text(
-          'Please wait, your code is being generated...',
-          style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
-          textAlign: TextAlign.center,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0F172A),
+              Color(0xFF1E293B),
+              Color(0xFF0F172A),
+            ],
+          ),
         ),
-      ] else ...[
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: size,
-              height: size,
-              child: AnimatedBuilder(
-                animation: _animationController,
-                builder: (context, child) {
-                  return CircularProgressIndicator(
-                    value: 1 - _animationController.value,
-                    strokeWidth: 10,
-                    backgroundColor: Colors.grey.shade300,
-                    valueColor: AlwaysStoppedAnimation(Colors.deepPurple),
-                  );
-                },
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom App Bar
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // User Info
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B).withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF334155).withOpacity(0.5),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF1E40AF), Color(0xFF06B6D4)],
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    username,
+                                    style: const TextStyle(
+                                      color: Color(0xFFF1F5F9),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    'ID: $userId',
+                                    style: const TextStyle(
+                                      color: Color(0xFF94A3B8),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    
+                    // Logs Button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B).withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF334155).withOpacity(0.5),
+                        ),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.history, color: Color(0xFF06B6D4)),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LogsPage()),
+                          );
+                        },
+                        tooltip: 'Login Logs',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    
+                    // Logout Button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B).withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF334155).withOpacity(0.5),
+                        ),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.logout, color: Color(0xFFEF4444)),
+                        onPressed: _logout,
+                        tooltip: 'Logout',
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Text(
-              authCode,
-              style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, letterSpacing: 5),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Text('Next code in: $secondsLeft s', style: const TextStyle(fontSize: 16)),
-      ],
-    ],
-  ),
-),
 
+              // Main Content
+              Expanded(
+                child: Center(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Title
+                          const Text(
+                            'Authentication Code',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFF1F5F9),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Use this code to access your secure VM',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF94A3B8),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 48),
+
+                          // Auth Code Display
+                          if (authCode.isEmpty) ...[
+                            // Loading State
+                            Container(
+                              padding: const EdgeInsets.all(40),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E293B).withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFF334155).withOpacity(0.5),
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  ScaleTransition(
+                                    scale: _pulseAnimation,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF1E40AF), Color(0xFF06B6D4)],
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF06B6D4).withOpacity(0.3),
+                                            blurRadius: 20,
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.key,
+                                        size: 48,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  const SizedBox(
+                                    width: 40,
+                                    height: 40,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF06B6D4)),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Generating your secure code...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Color(0xFF94A3B8),
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else ...[
+                            // Code Display
+                            Container(
+                              padding: const EdgeInsets.all(32),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E293B).withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFF334155).withOpacity(0.5),
+                                  width: 1,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  // Circular Progress with Code
+                                  Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 180,
+                                        height: 180,
+                                        child: AnimatedBuilder(
+                                          animation: _animationController,
+                                          builder: (context, child) {
+                                            return CircularProgressIndicator(
+                                              value: 1 - _animationController.value,
+                                              strokeWidth: 8,
+                                              backgroundColor: const Color(0xFF334155).withOpacity(0.3),
+                                              valueColor: AlwaysStoppedAnimation(
+                                                _animationController.value < 0.2
+                                                    ? const Color(0xFFEF4444) // Red when almost expired
+                                                    : const Color(0xFF06B6D4), // Cyan normally
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF0F172A).withOpacity(0.8),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: const Color(0xFF06B6D4).withOpacity(0.3),
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          authCode,
+                                          style: const TextStyle(
+                                            fontSize: 44,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 8,
+                                            color: Color(0xFFF1F5F9),
+                                            fontFamily: 'monospace',
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 24),
+                                  
+                                  // Timer Display
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0F172A).withOpacity(0.5),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(0xFF334155).withOpacity(0.5),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.timer_outlined,
+                                          color: secondsLeft <= 6
+                                              ? const Color(0xFFEF4444)
+                                              : const Color(0xFF06B6D4),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Next code in: ${secondsLeft}s',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: secondsLeft <= 6
+                                                ? const Color(0xFFEF4444)
+                                                : const Color(0xFFF1F5F9),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          
+                          const SizedBox(height: 32),
+                          
+                          // Info Card
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E40AF).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFF1E40AF).withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  color: const Color(0xFF06B6D4),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'This code refreshes every 30 seconds for maximum security',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: const Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
