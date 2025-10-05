@@ -114,4 +114,18 @@ router.get('/code', authenticateToken, async (req, res) => {
   }
 });
 
+router.get('/code/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const user = await User.findOne({ authCode: code });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'invalid' });
+    }
+
+    res.json({ success: true, username: user.username });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 export default router;

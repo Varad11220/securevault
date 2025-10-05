@@ -5,12 +5,19 @@ import authRoutes from './routes/auth.js';
 import cron from 'node-cron';
 import User from './models/user.js';
 import { generateRandomCode } from './utils/codeGenerator.js';
+import cors from 'cors';
+
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
+app.use(cors({
+  origin: 'http://localhost:3000', // or '*' to allow all origins
+  methods: ['GET', 'POST'],
+  credentials: true, // if sending cookies
+}));
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
