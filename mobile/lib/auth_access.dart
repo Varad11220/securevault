@@ -123,27 +123,27 @@ class _AuthAccessPageState extends State<AuthAccessPage> with SingleTickerProvid
                     children: [
                       // Fingerprint Icon
                       Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1E40AF), Color(0xFF06B6D4)],
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [Color.fromARGB(255, 251, 247, 243), Color.fromARGB(255, 251, 247, 243)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF06B6D4).withOpacity(0.3),
+                            blurRadius: 30,
+                            spreadRadius: 5,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF06B6D4).withOpacity(0.4),
-                              blurRadius: 40,
-                              spreadRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.fingerprint,
-                          size: 80,
-                          color: Colors.white,
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 40),
+                      child: Image.asset(
+                        'assets/logo.png', // path to your image
+                        width: 90,
+                        height: 90,
+                      ),
+                    ),
+                      const SizedBox(height: 20),
 
                       // Welcome Text
                       Text(
@@ -183,7 +183,7 @@ class _AuthAccessPageState extends State<AuthAccessPage> with SingleTickerProvid
                           color: Color(0xFF94A3B8),
                         ),
                       ),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 28),
 
                       // Authentication Card
                       Container(
@@ -318,35 +318,35 @@ class _AuthAccessPageState extends State<AuthAccessPage> with SingleTickerProvid
                       const SizedBox(height: 32),
 
                       // Info Card
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E40AF).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFF1E40AF).withOpacity(0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.shield_outlined,
-                              color: Color(0xFF06B6D4),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Your biometric data is stored securely on your device',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: const Color(0xFF94A3B8),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // Container(
+                      //   padding: const EdgeInsets.all(16),
+                      //   decoration: BoxDecoration(
+                      //     color: const Color(0xFF1E40AF).withOpacity(0.1),
+                      //     borderRadius: BorderRadius.circular(12),
+                      //     border: Border.all(
+                      //       color: const Color(0xFF1E40AF).withOpacity(0.3),
+                      //     ),
+                      //   ),
+                      //   child: Row(
+                      //     children: [
+                      //       const Icon(
+                      //         Icons.shield_outlined,
+                      //         color: Color(0xFF06B6D4),
+                      //         size: 20,
+                      //       ),
+                      //       const SizedBox(width: 12),
+                      //       Expanded(
+                      //         child: Text(
+                      //           'Your biometric data is stored securely on your device',
+                      //           style: TextStyle(
+                      //             fontSize: 13,
+                      //             color: const Color(0xFF94A3B8),
+                      //           ),
+                      //         ),
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),

@@ -147,7 +147,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF1E40AF), Color(0xFF06B6D4)],
+                          colors: [Color.fromARGB(255, 251, 247, 243), Color.fromARGB(255, 251, 247, 243)],
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -157,13 +157,13 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.shield_outlined,
-                        size: 64,
-                        color: Colors.white,
+                      child: Image.asset(
+                        'assets/logo.png', // path to your image
+                        width: 90,
+                        height: 90,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 20),
 
                     // Title
                     const Text(
@@ -183,7 +183,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         color: Color(0xFF94A3B8),
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 30),
 
                     // Login Card
                     Container(
@@ -269,7 +269,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
 
                     // Register Link
                     Row(

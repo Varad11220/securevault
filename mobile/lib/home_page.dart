@@ -408,7 +408,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                               strokeWidth: 8,
                                               backgroundColor: const Color(0xFF334155).withOpacity(0.3),
                                               valueColor: AlwaysStoppedAnimation(
-                                                _animationController.value < 0.2
+                                                _animationController.value > 0.8
                                                     ? const Color(0xFFEF4444) // Red when almost expired
                                                     : const Color(0xFF06B6D4), // Cyan normally
                                               ),
