@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json());
 
 app.use(cors({
-  origin: 'http://localhost:3000', // or '*' to allow all origins
+  origin: '*', // or '*' to allow all origins
   methods: ['GET', 'POST'],
   credentials: true, // if sending cookies
 }));
@@ -49,3 +49,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
