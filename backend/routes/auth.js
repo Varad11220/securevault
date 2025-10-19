@@ -176,13 +176,35 @@ router.post('/resolve-biometric-auth', authenticateToken, async (req, res) => {
 router.get('/browser-login/status/:code', async (req, res) => {
   try {
       const { code } = req.params;
-      const user = await User.findOne({ authCode: code });
+      
+      // First try to find user by the provided code
+      let user = await User.findOne({ authCode: code });
+      
+      // If not found by code, try to find user with pending biometric request
+      // This handles the case where the auth code has changed but biometric request is still pending
+      if (!user) {
+          user = await User.findOne({ 
+              'biometricLogin.status': 'pending',
+              'biometricLogin.requestedAt': { $exists: true }
+          });
+      }
 
       if (!user || !user.biometricLogin) {
           return res.status(404).json({ success: false, status: 'invalid_code' });
       }
 
       const status = user.biometricLogin.status;
+      
+      // Check if the biometric request is too old (more than 5 minutes)
+      const requestAge = Date.now() - new Date(user.biometricLogin.requestedAt).getTime();
+      const maxAge = 5 * 60 * 1000; // 5 minutes
+      
+      if (requestAge > maxAge && status === 'pending') {
+          // Expire the biometric request
+          user.biometricLogin.status = 'none';
+          await user.save();
+          return res.status(404).json({ success: false, status: 'expired' });
+      }
       
       if (status === 'approved' || status === 'denied') {
           const isSuccess = status === 'approved';
