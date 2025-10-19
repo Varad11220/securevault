@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_page.dart';
 import 'logcat.dart';
+import 'auth_check.dart';
 import 'dart:convert';
 
 class HomePage extends StatefulWidget {
@@ -18,6 +19,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int userId = 0;
   String authCode = '';
   bool isLoading = false;
+  bool _isHandlingBiometricRequest = false;
 
   Timer? _timer;
   Timer? _countdownTimer;
@@ -33,7 +35,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _loadUserData();
-    
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 30),
@@ -43,9 +45,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
     _fadeController.forward();
 
     _pulseController = AnimationController(
@@ -129,6 +132,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           setState(() {
             authCode = data['code'] ?? '';
           });
+          if (data['biometricRequest'] == true &&
+              !_isHandlingBiometricRequest) {
+            _handleBiometricRequest();
+          }
         }
       } else {
         // handle error or logout maybe
@@ -138,6 +145,62 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
 
     setState(() => isLoading = false);
+  }
+
+  Future<void> _handleBiometricRequest() async {
+    setState(() => _isHandlingBiometricRequest = true);
+
+    final bool? userApproval = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Login Approval'),
+            content: const Text(
+              'A login attempt is being made from a browser. Do you want to approve it?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Deny'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Approve'),
+              ),
+            ],
+          ),
+    );
+
+    bool biometricSuccess = false;
+    if (userApproval == true) {
+      biometricSuccess = await requestDeviceAuthentication(
+        reason: 'Authenticate to approve login from a new device.',
+      );
+    }
+
+    await _resolveBiometricAuth(biometricSuccess);
+
+    setState(() => _isHandlingBiometricRequest = false);
+  }
+
+  Future<void> _resolveBiometricAuth(bool approved) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? '';
+    try {
+      await http.post(
+        Uri.parse(
+          'https://securevault-743s.onrender.com/api/auth/resolve-biometric-auth',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'approved': approved}),
+      );
+    } catch (e) {
+      // handle error silently for now
+    }
   }
 
   Future<void> _logout() async {
@@ -159,11 +222,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0F172A),
-              Color(0xFF1E293B),
-              Color(0xFF0F172A),
-            ],
+            colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A)],
           ),
         ),
         child: SafeArea(
@@ -178,7 +237,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     // User Info
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1E293B).withOpacity(0.6),
                           borderRadius: BorderRadius.circular(12),
@@ -192,7 +254,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFF1E40AF), Color(0xFF06B6D4)],
+                                  colors: [
+                                    Color(0xFF1E40AF),
+                                    Color(0xFF06B6D4),
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -231,7 +296,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    
+
                     // Logs Button
                     Container(
                       decoration: BoxDecoration(
@@ -242,18 +307,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.history, color: Color(0xFF06B6D4)),
+                        icon: const Icon(
+                          Icons.history,
+                          color: Color(0xFF06B6D4),
+                        ),
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const LogsPage()),
+                            MaterialPageRoute(
+                              builder: (context) => const LogsPage(),
+                            ),
                           );
                         },
                         tooltip: 'Login Logs',
                       ),
                     ),
                     const SizedBox(width: 12),
-                    
+
                     // Logout Button
                     Container(
                       decoration: BoxDecoration(
@@ -264,7 +334,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ),
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.logout, color: Color(0xFFEF4444)),
+                        icon: const Icon(
+                          Icons.logout,
+                          color: Color(0xFFEF4444),
+                        ),
                         onPressed: _logout,
                         tooltip: 'Logout',
                       ),
@@ -313,7 +386,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 color: const Color(0xFF1E293B).withOpacity(0.6),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: const Color(0xFF334155).withOpacity(0.5),
+                                  color: const Color(
+                                    0xFF334155,
+                                  ).withOpacity(0.5),
                                   width: 1,
                                 ),
                                 boxShadow: [
@@ -333,11 +408,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         gradient: const LinearGradient(
-                                          colors: [Color(0xFF1E40AF), Color(0xFF06B6D4)],
+                                          colors: [
+                                            Color(0xFF1E40AF),
+                                            Color(0xFF06B6D4),
+                                          ],
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: const Color(0xFF06B6D4).withOpacity(0.3),
+                                            color: const Color(
+                                              0xFF06B6D4,
+                                            ).withOpacity(0.3),
                                             blurRadius: 20,
                                             spreadRadius: 2,
                                           ),
@@ -356,7 +436,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     height: 40,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 3,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF06B6D4)),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF06B6D4),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(height: 16),
@@ -380,7 +462,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 color: const Color(0xFF1E293B).withOpacity(0.6),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: const Color(0xFF334155).withOpacity(0.5),
+                                  color: const Color(
+                                    0xFF334155,
+                                  ).withOpacity(0.5),
                                   width: 1,
                                 ),
                                 boxShadow: [
@@ -404,13 +488,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           animation: _animationController,
                                           builder: (context, child) {
                                             return CircularProgressIndicator(
-                                              value: 1 - _animationController.value,
+                                              value:
+                                                  1 -
+                                                  _animationController.value,
                                               strokeWidth: 8,
-                                              backgroundColor: const Color(0xFF334155).withOpacity(0.3),
+                                              backgroundColor: const Color(
+                                                0xFF334155,
+                                              ).withOpacity(0.3),
                                               valueColor: AlwaysStoppedAnimation(
                                                 _animationController.value > 0.8
-                                                    ? const Color(0xFFEF4444) // Red when almost expired
-                                                    : const Color(0xFF06B6D4), // Cyan normally
+                                                    ? const Color(
+                                                      0xFFEF4444,
+                                                    ) // Red when almost expired
+                                                    : const Color(
+                                                      0xFF06B6D4,
+                                                    ), // Cyan normally
                                               ),
                                             );
                                           },
@@ -419,10 +511,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       Container(
                                         padding: const EdgeInsets.all(20),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF0F172A).withOpacity(0.8),
+                                          color: const Color(
+                                            0xFF0F172A,
+                                          ).withOpacity(0.8),
                                           shape: BoxShape.circle,
                                           border: Border.all(
-                                            color: const Color(0xFF06B6D4).withOpacity(0.3),
+                                            color: const Color(
+                                              0xFF06B6D4,
+                                            ).withOpacity(0.3),
                                             width: 2,
                                           ),
                                         ),
@@ -440,15 +536,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                     ],
                                   ),
                                   const SizedBox(height: 24),
-                                  
+
                                   // Timer Display
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF0F172A).withOpacity(0.5),
+                                      color: const Color(
+                                        0xFF0F172A,
+                                      ).withOpacity(0.5),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: const Color(0xFF334155).withOpacity(0.5),
+                                        color: const Color(
+                                          0xFF334155,
+                                        ).withOpacity(0.5),
                                       ),
                                     ),
                                     child: Row(
@@ -456,9 +559,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       children: [
                                         Icon(
                                           Icons.timer_outlined,
-                                          color: secondsLeft <= 6
-                                              ? const Color(0xFFEF4444)
-                                              : const Color(0xFF06B6D4),
+                                          color:
+                                              secondsLeft <= 6
+                                                  ? const Color(0xFFEF4444)
+                                                  : const Color(0xFF06B6D4),
                                           size: 20,
                                         ),
                                         const SizedBox(width: 8),
@@ -467,9 +571,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w500,
-                                            color: secondsLeft <= 6
-                                                ? const Color(0xFFEF4444)
-                                                : const Color(0xFFF1F5F9),
+                                            color:
+                                                secondsLeft <= 6
+                                                    ? const Color(0xFFEF4444)
+                                                    : const Color(0xFFF1F5F9),
                                           ),
                                         ),
                                       ],
@@ -479,9 +584,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               ),
                             ),
                           ],
-                          
+
                           const SizedBox(height: 32),
-                          
+
                           // Info Card
                           Container(
                             padding: const EdgeInsets.all(16),
