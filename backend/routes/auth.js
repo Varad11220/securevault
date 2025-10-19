@@ -2,6 +2,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";      
+import Settings from '../models/settings.js';
 import Counter from '../models/counter.js'; 
 import LoginLog from '../models/loginLog.js';
 import { generateRandomCode } from '../utils/codeGenerator.js';  
