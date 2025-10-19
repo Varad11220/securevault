@@ -94,12 +94,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         final serverStart = DateTime.parse(data['codeCycleStart']);
         final now = DateTime.now();
         final elapsed = now.difference(serverStart).inMilliseconds;
-        final msUntilNextCycle = 30000 - (elapsed % 30000);
 
-        // Wait until the next aligned cycle
-        Future.delayed(Duration(milliseconds: msUntilNextCycle), () {
-          _fetchAuthCode(); // initial fetch
+        // How far we are into the current 30s cycle
+        final msIntoCurrentCycle = elapsed % 30000;
+        final msUntilNextCycle = 30000 - msIntoCurrentCycle;
+
+        // Initial fetch immediately for current code
+        _fetchAuthCode();
+
+        // Start animation & countdown aligned with server
+        _animationController.forward(from: msIntoCurrentCycle / 30000);
+        secondsLeft = (msUntilNextCycle / 1000).ceil();
+        _startCountdownTimer();
+
+        // Start periodic timer aligned to server cycle
+        _timer = Timer(Duration(milliseconds: msUntilNextCycle), () {
+          _fetchAuthCode();
           _animationController.forward(from: 0);
+          secondsLeft = 30;
           _startCountdownTimer();
 
           _timer = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -117,7 +129,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void _startCountdownTimer() {
-    secondsLeft = 30;
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (secondsLeft > 0) {
