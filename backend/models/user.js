@@ -8,7 +8,8 @@ const userSchema = new mongoose.Schema({
   authCode: { type: String, default: '' },
   biometricLogin: {
     status: { type: String, enum: ['none', 'pending', 'approved', 'denied'], default: 'none' },
-    requestedAt: { type: Date }
+    requestedAt: { type: Date },
+    sessionId: { type: String }
   }
 });
 

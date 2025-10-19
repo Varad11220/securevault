@@ -142,10 +142,22 @@ router.post('/browser-login', async (req, res) => {
           return res.status(404).json({ success: false, message: 'Invalid authentication code.' });
       }
 
-      user.biometricLogin = { status: 'pending', requestedAt: new Date() };
+      // Generate a unique session ID for this login attempt
+      const sessionId = `login_${user.userId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      user.biometricLogin = { 
+          status: 'pending', 
+          requestedAt: new Date(),
+          sessionId: sessionId
+      };
       await user.save();
 
-      res.json({ success: true, message: 'Biometric verification initiated.', username: user.username });
+      res.json({ 
+          success: true, 
+          message: 'Biometric verification initiated.', 
+          username: user.username,
+          sessionId: sessionId
+      });
   } catch (error) {
       console.error("Browser login init error:", error);
       res.status(500).json({ success: false, message: error.message });
@@ -172,25 +184,19 @@ router.post('/resolve-biometric-auth', authenticateToken, async (req, res) => {
   }
 });
 
-// Browser polls for login status
-router.get('/browser-login/status/:code', async (req, res) => {
+// Browser polls for login status using sessionId
+router.get('/browser-login/status/:sessionId', async (req, res) => {
   try {
-      const { code } = req.params;
+      const { sessionId } = req.params;
       
-      // First try to find user by the provided code
-      let user = await User.findOne({ authCode: code });
-      
-      // If not found by code, try to find user with pending biometric request
-      // This handles the case where the auth code has changed but biometric request is still pending
-      if (!user) {
-          user = await User.findOne({ 
-              'biometricLogin.status': 'pending',
-              'biometricLogin.requestedAt': { $exists: true }
-          });
-      }
+      // Find user by sessionId instead of auth code
+      const user = await User.findOne({ 
+          'biometricLogin.sessionId': sessionId,
+          'biometricLogin.status': { $in: ['pending', 'approved', 'denied'] }
+      });
 
       if (!user || !user.biometricLogin) {
-          return res.status(404).json({ success: false, status: 'invalid_code' });
+          return res.status(404).json({ success: false, status: 'invalid_session' });
       }
 
       const status = user.biometricLogin.status;
@@ -202,6 +208,7 @@ router.get('/browser-login/status/:code', async (req, res) => {
       if (requestAge > maxAge && status === 'pending') {
           // Expire the biometric request
           user.biometricLogin.status = 'none';
+          user.biometricLogin.sessionId = undefined;
           await user.save();
           return res.status(404).json({ success: false, status: 'expired' });
       }
@@ -218,7 +225,9 @@ router.get('/browser-login/status/:code', async (req, res) => {
           });
           await log.save();
 
+          // Clear the biometric login data
           user.biometricLogin.status = 'none';
+          user.biometricLogin.sessionId = undefined;
           await user.save();
 
           if (isSuccess) {
