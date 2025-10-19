@@ -19,9 +19,14 @@ async function getNextSequence(name) {
 //
 router.get('/code-cycle-start', async (req, res) => {
   try {
-    const settings = await Settings.findOne();
+    let settings = await Settings.findOne();
+    if (!settings) {
+      settings = new Settings({ codeCycleStart: new Date() });
+      await settings.save();
+    }
     res.json({ success: true, codeCycleStart: settings.codeCycleStart });
   } catch (err) {
+    console.error('Error in /code-cycle-start:', err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
