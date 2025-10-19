@@ -5,7 +5,11 @@ const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   email: { type: String, unique: true, required: true },
   password: { type: String, required: true },
-  authCode: { type: String, default: '' }
+  authCode: { type: String, default: '' },
+  biometricLogin: {
+    status: { type: String, enum: ['none', 'pending', 'approved', 'denied'], default: 'none' },
+    requestedAt: { type: Date }
+  }
 });
 
 export default mongoose.models.User || mongoose.model('User', userSchema);

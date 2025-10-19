@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";      
 import Counter from '../models/counter.js'; 
+import LoginLog from '../models/loginLog.js';
 import { generateRandomCode } from '../utils/codeGenerator.js';  
 
 const router = express.Router();
@@ -108,7 +109,9 @@ router.get('/code', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    res.json({ success: true, code: user.authCode || '' });
+    const biometricRequest = user.biometricLogin && user.biometricLogin.status === 'pending';
+
+    res.json({ success: true, code: user.authCode || '', biometricRequest });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -128,4 +131,102 @@ router.get('/code/:code', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// Browser initiates login with auth code
+router.post('/browser-login', async (req, res) => {
+  try {
+      const { authCode } = req.body;
+      const user = await User.findOne({ authCode });
+
+      if (!user) {
+          return res.status(404).json({ success: false, message: 'Invalid authentication code.' });
+      }
+
+      user.biometricLogin = { status: 'pending', requestedAt: new Date() };
+      await user.save();
+
+      res.json({ success: true, message: 'Biometric verification initiated.', username: user.username });
+  } catch (error) {
+      console.error("Browser login init error:", error);
+      res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Mobile app resolves biometric auth
+router.post('/resolve-biometric-auth', authenticateToken, async (req, res) => {
+  try {
+      const { approved } = req.body;
+      const user = await User.findOne({ userId: req.user.userId });
+
+      if (!user || user.biometricLogin.status !== 'pending') {
+          return res.status(400).json({ success: false, message: 'No pending biometric request.' });
+      }
+
+      user.biometricLogin.status = approved ? 'approved' : 'denied';
+      await user.save();
+      
+      res.json({ success: true, message: 'Biometric status updated.' });
+  } catch (error) {
+      console.error("Resolve biometric auth error:", error);
+      res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Browser polls for login status
+router.get('/browser-login/status/:code', async (req, res) => {
+  try {
+      const { code } = req.params;
+      const user = await User.findOne({ authCode: code });
+
+      if (!user || !user.biometricLogin) {
+          return res.status(404).json({ success: false, status: 'invalid_code' });
+      }
+
+      const status = user.biometricLogin.status;
+      
+      if (status === 'approved' || status === 'denied') {
+          const isSuccess = status === 'approved';
+          
+          const log = new LoginLog({
+              userId: user.userId,
+              username: user.username,
+              ip_address: req.ip,
+              user_agent: req.headers['user-agent'] || 'Unknown',
+              success: isSuccess,
+          });
+          await log.save();
+
+          user.biometricLogin.status = 'none';
+          await user.save();
+
+          if (isSuccess) {
+              const token = jwt.sign(
+                  { userId: user.userId, username: user.username },
+                  process.env.JWT_SECRET,
+                  { expiresIn: '1h' }
+              );
+              return res.json({ success: true, status: 'approved', token });
+          } else {
+              return res.json({ success: false, status: 'denied' });
+          }
+      }
+
+      res.json({ success: true, status });
+  } catch (error) {
+      console.error("Browser login status error:", error);
+      res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Mobile gets login logs
+router.get('/logs', authenticateToken, async (req, res) => {
+  try {
+      const logs = await LoginLog.find({ userId: req.user.userId }).sort({ timestamp: -1 }).limit(50);
+      res.json({ success: true, logs });
+  } catch (error) {
+      console.error("Fetch logs error:", error);
+      res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;
