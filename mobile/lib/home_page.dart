@@ -76,25 +76,44 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       username = prefs.getString('username') ?? 'Guest';
       userId = prefs.getInt('userId') ?? 0;
     });
-    _startAuthCodeCycle();
+
+    // Start server-aligned auth code cycle
+    await _startAuthCodeCycle();
   }
 
-  void _startAuthCodeCycle() {
-    final now = DateTime.now();
-    final msUntilNext30Sec = (30 - (now.second % 30)) * 1000 - now.millisecond;
+  Future<void> _startAuthCodeCycle() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://securevault-743s.onrender.com/api/auth/code-cycle-start',
+        ),
+      );
 
-    Future.delayed(Duration(milliseconds: msUntilNext30Sec), () {
-      _fetchAuthCode();
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final serverStart = DateTime.parse(data['codeCycleStart']);
+        final now = DateTime.now();
+        final elapsed = now.difference(serverStart).inMilliseconds;
+        final msUntilNextCycle = 30000 - (elapsed % 30000);
 
-      _animationController.forward(from: 0);
-      _startCountdownTimer();
+        // Wait until the next aligned cycle
+        Future.delayed(Duration(milliseconds: msUntilNextCycle), () {
+          _fetchAuthCode(); // initial fetch
+          _animationController.forward(from: 0);
+          _startCountdownTimer();
 
-      _timer = Timer.periodic(const Duration(seconds: 30), (_) {
-        _fetchAuthCode();
-        _animationController.forward(from: 0);
-        secondsLeft = 30;
-      });
-    });
+          _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+            _fetchAuthCode();
+            _animationController.forward(from: 0);
+            secondsLeft = 30;
+          });
+        });
+      } else {
+        print('❌ Failed to fetch server cycle start');
+      }
+    } catch (e) {
+      print('❌ Error syncing with server: $e');
+    }
   }
 
   void _startCountdownTimer() {

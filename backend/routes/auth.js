@@ -16,6 +16,16 @@ async function getNextSequence(name) {
   );
   return counter.seq;
 }
+//
+router.get('/code-cycle-start', async (req, res) => {
+  try {
+    const settings = await Settings.findOne();
+    res.json({ success: true, codeCycleStart: settings.codeCycleStart });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 
 // Register
 router.post("/register", async (req, res) => {
