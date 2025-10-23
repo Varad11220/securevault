@@ -131,26 +131,26 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
           child: Column(
             children: [
               // Custom App Bar
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B).withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF334155).withOpacity(0.5),
-                        ),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Color(0xFFF1F5F9)),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // Padding(
+              //   padding: const EdgeInsets.all(16.0),
+              //   child: Row(
+              //     children: [
+              //       Container(
+              //         decoration: BoxDecoration(
+              //           color: const Color(0xFF1E293B).withOpacity(0.6),
+              //           borderRadius: BorderRadius.circular(12),
+              //           border: Border.all(
+              //             color: const Color(0xFF334155).withOpacity(0.5),
+              //           ),
+              //         ),
+              //         child: IconButton(
+              //           icon: const Icon(Icons.arrow_back, color: Color(0xFFF1F5F9)),
+              //           onPressed: () => Navigator.pop(context),
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
 
               // Scrollable Content
               Expanded(

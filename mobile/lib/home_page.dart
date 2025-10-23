@@ -460,17 +460,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(height: 24),
-                                  const SizedBox(
-                                    width: 40,
-                                    height: 40,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 3,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Color(0xFF06B6D4),
-                                      ),
-                                    ),
-                                  ),
+                                  // const SizedBox(height: 24),
+                                  // const SizedBox(
+                                  //   width: 40,
+                                  //   height: 40,
+                                  //   child: CircularProgressIndicator(
+                                  //     strokeWidth: 3,
+                                  //     valueColor: AlwaysStoppedAnimation<Color>(
+                                  //       Color(0xFF06B6D4),
+                                  //     ),
+                                  //   ),
+                                  // ),
                                   const SizedBox(height: 16),
                                   const Text(
                                     'Generating your secure code...',

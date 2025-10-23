@@ -217,15 +217,15 @@ class _LogsPageState extends State<LogsPage> with SingleTickerProviderStateMixin
                               ),
                             ),
                             const SizedBox(height: 24),
-                            const SizedBox(
-                              width: 40,
-                              height: 40,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF06B6D4)),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
+                            // const SizedBox(
+                            //   width: 40,
+                            //   height: 40,
+                            //   child: CircularProgressIndicator(
+                            //     strokeWidth: 3,
+                            //     valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF06B6D4)),
+                            //   ),
+                            // ),
+                            // const SizedBox(height: 16),
                             const Text(
                               'Loading login history...',
                               style: TextStyle(
@@ -478,6 +478,7 @@ class _LogsPageState extends State<LogsPage> with SingleTickerProviderStateMixin
                                                             color: Color(0xFF94A3B8),
                                                           ),
                                                           overflow: TextOverflow.ellipsis,
+                                                          softWrap: true,
                                                           maxLines: 1,
                                                         ),
                                                       ),
